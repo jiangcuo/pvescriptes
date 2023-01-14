@@ -40,8 +40,6 @@ clean_chroot(){
 }
 
 grub_install(){
-	echo "create grub"
-	chroot $pve_target /usr/sbin/update-initramfs -c -k all
 	echo "create efi boot"
 	mkdir $pve_target/boot/efi 
 	chroot $pve_target mount "$newdisk"2 /boot/efi

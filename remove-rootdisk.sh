@@ -1,5 +1,6 @@
 #!/bin/bash
 #first_define_your_new_disk
+#newdisk will clean and format ext4 filesystem.
 
 newdisk="/dev/sdb"
 pve_target="/tmp/newdisk"
@@ -29,12 +30,12 @@ prepare_chroot(){
 clean_chroot(){
 	echo "clean chroot"
 	echo clean
+	chroot $pve_target umount /run
+        umount $pve_target/mnt/hostrun
 	umount -l $pve_target/proc
 	umount -l $pve_target/sys
-    umount -l $pve_target/dev/pts
+        umount -l $pve_target/dev/pts
 	umount -l $pve_target/dev
-    chroot $pve_target umount /run
-    umount $pve_target/mnt/hostrun
 	umount -l $pve_target/boot/efi/
 	umount -l $pve_target
 }
@@ -45,10 +46,16 @@ grub_install(){
 	chroot $pve_target mount "$newdisk"2 /boot/efi
 	chroot $pve_target update-grub
 	mkdir $pve_target/boot/efi/EFI/BOOT/ -p
+	if [ `arch` == "aarch64" ];then
+	chroot $pve_target grub-install --target arm64-efi --no-floppy --bootloader-id='proxmox' $newdisk
+	cp -r $pve_target/boot/efi/EFI/proxmox/* $pve_target/boot/efi/EFI/BOOT/
+	mv $pve_target/boot/efi/EFI/proxmox/grubaa64.efi $pve_target/boot/efi/EFI/BOOT/bootaa64.efi
+	else
 	chroot $pve_target grub-install --target x86_64-efi --no-floppy --bootloader-id='proxmox' $newdisk
 	cp $pve_target/boot/efi/EFI/proxmox/grubx64.efi $pve_target/boot/efi/EFI/BOOT/BOOTX64.EFI 
 	echo "create bios boot"
 	chroot $pve_target grub-install --target=i386-pc --recheck --debug $newdisk
+	fi
 }
 
 
@@ -76,14 +83,18 @@ disk_setup(){
 }
 
 newdisk_mount{
-    mkdir -p $pve_target
-    mount "$newdisk"3 $pve_target
+        mkdir -p $pve_target
+        mount "$newdisk"3 $pve_target
+}
+apt_check{
+        command -v rsync > /dev/null 2>&1 || apt update && apt install -y rsync 
 }
 
 copy_root{
-    cp -ar / $pve_target
+        rsync -arv --exclude=proc --exclude=tmp / $pve_target
+        mkdir $pve_target/proc
 }
-
+apt_check
 disk_setup
 newdisk_mount
 copy_root

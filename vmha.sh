@@ -1,5 +1,5 @@
 #!/bin/bash
-host="10.13.14.254"
+host="10.13.14.54"
 vmid="122"
 logfile="/var/log/vmha-$vmid.log"
 vmstatus=`qm status $vmid|awk '{print $2}'`

@@ -34,12 +34,12 @@ prepare_chroot(){
 clean_chroot(){
 	echo "clean chroot"
 	echo clean
+	chroot $pve_target umount /run
+    umount $pve_target/mnt/hostrun
 	umount -l $pve_target/proc
 	umount -l $pve_target/sys
     umount -l $pve_target/dev/pts
 	umount -l $pve_target/dev
-    chroot $pve_target umount /run
-    umount $pve_target/mnt/hostrun
 	umount -l $pve_target/boot/efi/
 	umount -l $pve_target
 }
@@ -61,6 +61,18 @@ grub_install(){
 		cp $pve_target/boot/efi/EFI/proxmox/grubx64.efi $pve_target/boot/efi/EFI/BOOT/BOOTX64.EFI  || errlog "copy grub boot file error !"
 		echo "create bios boot"
 		chroot $pve_target grub-install --target=i386-pc --recheck --debug $newdisk  || errlog "grub-pc install error !"
+	chroot $pve_target mount "$newdisk"2 /boot/efi
+	chroot $pve_target update-grub
+	mkdir $pve_target/boot/efi/EFI/BOOT/ -p
+	if [ `arch` == "aarch64" ];then
+	chroot $pve_target grub-install --target arm64-efi --no-floppy --bootloader-id='proxmox' $newdisk
+	cp -r $pve_target/boot/efi/EFI/proxmox/* $pve_target/boot/efi/EFI/BOOT/
+	mv $pve_target/boot/efi/EFI/proxmox/grubaa64.efi $pve_target/boot/efi/EFI/BOOT/bootaa64.efi
+	else
+	chroot $pve_target grub-install --target x86_64-efi --no-floppy --bootloader-id='proxmox' $newdisk
+	cp $pve_target/boot/efi/EFI/proxmox/grubx64.efi $pve_target/boot/efi/EFI/BOOT/BOOTX64.EFI 
+	echo "create bios boot"
+	chroot $pve_target grub-install --target=i386-pc --recheck --debug $newdisk
 	fi
 }
 

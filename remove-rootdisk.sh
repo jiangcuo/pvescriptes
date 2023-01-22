@@ -65,10 +65,10 @@ grub_install(){
 }
 
 disk_setup(){
-	#check disk whether exist
+	
 	dd if=/dev/zero of=$newdisk bs=1M count=16
 	echo "create gpt"
-	sgdisk -G $newdisk || errlog "create gpt error"
+	sgdisk -ZG $newdisk
 	echo "create bios parttion"
 	sgdisk -a1 -n1:34:2047  -t1:EF02  $newdisk  || errlog  "create bios parttion error"
 	echo "create efi parttion"
@@ -101,6 +101,10 @@ config_check(){
 	fi
 	if [ ! -b $newdisk ];then
 		errlog "$newdisk is not exist"
+	fi
+	if [ ! -z "$(lsblk -f|grep $newdisk|grep LVM2)" ];then
+		echo "Detected lvm filesystem on,abort!"
+		echo "please remove it and try again."
 	fi
 	if [ -z $pve_target ];then
 	export pve_target="/tmp/newdisk"

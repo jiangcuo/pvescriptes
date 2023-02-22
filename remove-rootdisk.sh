@@ -12,11 +12,21 @@ errlog(){
 
 mount_fstab(){
 	echo "create fstab"
-	efiboot=$(blkid "$newdisk"2|awk  '{print $2}'|sed "s/\"//g")
-	echo "proc /proc proc defaults 0 0" > $pve_target/etc/fstab
-	echo "$efiboot /boot/efi vfat defaults 0 0" >> $pve_target/etc/fstab
-	rootboot=$(blkid "$newdisk"3|awk  '{print $2}'|sed "s/\"//g")
-	echo "$rootboot / ext4 errors=remount-ro 0 1" >> $pve_target/etc/fstab
+	diskcheck=`echo  $newdisk |grep  -E "nvme|nbd|pmem0"`
+	if [ -n "$diskcheck" ];then
+		echo "special detected"
+		efiboot=$(blkid "$newdisk"p2|awk  '{print $2}'|sed "s/\"//g")
+		echo "proc /proc proc defaults 0 0" > $pve_target/etc/fstab
+		echo "$efiboot /boot/efi vfat defaults 0 0" >> $pve_target/etc/fstab
+		rootboot=$(blkid "$newdisk"p3|awk  '{print $2}'|sed "s/\"//g")
+		echo "$rootboot / ext4 errors=remount-ro 0 1" >> $pve_target/etc/fstab
+	else
+		efiboot=$(blkid "$newdisk"2|awk  '{print $2}'|sed "s/\"//g")
+		echo "proc /proc proc defaults 0 0" > $pve_target/etc/fstab
+		echo "$efiboot /boot/efi vfat defaults 0 0" >> $pve_target/etc/fstab
+		rootboot=$(blkid "$newdisk"3|awk  '{print $2}'|sed "s/\"//g")
+		echo "$rootboot / ext4 errors=remount-ro 0 1" >> $pve_target/etc/fstab
+	fi
 }
 
 prepare_chroot(){

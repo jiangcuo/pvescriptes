@@ -69,14 +69,25 @@ disk_setup(){
 	dd if=/dev/zero of=$newdisk bs=1M count=16
 	echo "create gpt"
 	sgdisk -ZG $newdisk
+
 	echo "create bios parttion"
 	sgdisk -a1 -n1:34:2047  -t1:EF02  $newdisk  || errlog  "create bios parttion error"
+
 	echo "create efi parttion"
 	sgdisk -a1 -n2:1M:+512M -t2:EF00 $newdisk  || errlog   "create efi parttion error"
-	mkfs.vfat -F 32 "$newdisk"2
+
 	echo "create root parttion"
 	sgdisk -a1 -n3:513M:-1G  $newdisk || errlog   "create root parttion error"
-	mkfs.ext4 -F "$newdisk"3
+
+	diskcheck=`echo  $newdisk |grep  -E "nvme|nbd|pmem0"`
+	if [ -n "$diskcheck" ];then
+		echo "special detected"
+		mkfs.ext4 -F "$newdisk"p3
+		mkfs.vfat -F 32 "$newdisk"p2
+	else
+		mkfs.ext4 -F "$newdisk"3
+		mkfs.vfat -F 32 "$newdisk"2
+	fi
 }
 
 newdisk_mount(){
